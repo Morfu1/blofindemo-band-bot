@@ -1,5 +1,6 @@
 import time
 import logging
+import threading
 from datetime import datetime
 from config import Config
 from strategy import TradingStrategy
@@ -7,6 +8,7 @@ from exchange import BlofingExchange
 from notifications import TelegramNotifier
 from scanner import CoinScanner
 from utils import setup_logging, validate_timeframe
+from server import start_server  # Import the Flask server starter
 
 def is_candle_closed(data):
     """Check if the latest candle is newly closed"""
@@ -24,17 +26,10 @@ def get_next_candle_time(timeframe='5m'):
     remaining_seconds = (minutes - (current_time.minute % minutes)) * 60 - current_time.second
     return remaining_seconds + 2  # Add 2 seconds buffer
 
-def main():
-    # Setup logging
-    setup_logging()
+def run_trading_bot():
     logger = logging.getLogger(__name__)
 
     try:
-        # Validate configuration
-        Config.validate()
-        if not validate_timeframe(Config.TIMEFRAME):
-            raise ValueError(f"Invalid timeframe: {Config.TIMEFRAME}")
-
         # Initialize components
         exchange = BlofingExchange()
         strategy = TradingStrategy(Config.SMA_PERIOD, Config.EMA_PERIOD)
@@ -72,45 +67,73 @@ def main():
                         side = 'buy' if signal['action'] == 'long' else 'sell'
                         logger.info(f"Opening new {signal['action']} position for {symbol}")
 
-                        order = exchange.create_order(
-                            symbol=symbol,
-                            order_type='market',
-                            side=side,
-                            amount=Config.POSITION_SIZE,
-                            params={
-                                'stopLoss': {
-                                    'price': signal['sl_price'],
-                                    'type': 'market'
-                                },
-                                'takeProfit': {
-                                    'price': signal['tp_price'],
-                                    'type': 'market'
+                        try:
+                            order = exchange.create_order(
+                                symbol=symbol,
+                                order_type='market',
+                                side=side,
+                                amount=Config.POSITION_SIZE,
+                                params={
+                                    'stopLoss': {
+                                        'price': signal['sl_price'],
+                                        'type': 'market'
+                                    },
+                                    'takeProfit': {
+                                        'price': signal['tp_price'],
+                                        'type': 'market'
+                                    }
                                 }
-                            }
-                        )
-
-                        # Notify about new position
-                        notifier.notify(
-                            notifier.format_trade_message(
-                                signal['action'],
-                                symbol,
-                                signal['entry_price'],
-                                signal['tp_price'],
-                                signal['sl_price'],
-                                Config.POSITION_SIZE
                             )
-                        )
-                        logger.info(f"Opened new {signal['action']} position on {symbol}")
+
+                            # Notify about new position
+                            notifier.notify(
+                                notifier.format_trade_message(
+                                    signal['action'],
+                                    symbol,
+                                    signal['entry_price'],
+                                    signal['tp_price'],
+                                    signal['sl_price'],
+                                    Config.POSITION_SIZE
+                                )
+                            )
+                            logger.info(f"Opened new {signal['action']} position on {symbol}")
+                        except Exception as e:
+                            logger.error(f"Failed to create order for {symbol}: {str(e)}")
+                            continue
 
             except Exception as e:
                 logger.error(f"Error in main loop: {str(e)}")
-                notifier.notify(f"⚠️ Error: {str(e)}")
+                if 'notifier' in locals():
+                    notifier.notify(f"⚠️ Error: {str(e)}")
                 time.sleep(60)  # Wait a minute before retrying after error
 
     except Exception as e:
         logger.error(f"Fatal error: {str(e)}")
         if 'notifier' in locals():
             notifier.notify(f"❌ Fatal error: {str(e)}")
+
+def main():
+    # Setup logging
+    setup_logging()
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Validate configuration
+        Config.validate()
+        if not validate_timeframe(Config.TIMEFRAME):
+            raise ValueError(f"Invalid timeframe: {Config.TIMEFRAME}")
+
+        # Start web interface in a separate thread
+        web_thread = threading.Thread(target=start_server)
+        web_thread.daemon = True
+        web_thread.start()
+        logger.info("Web interface started on port 5001")
+
+        # Start trading bot in main thread
+        run_trading_bot()
+
+    except Exception as e:
+        logger.error(f"Fatal error in main: {str(e)}")
 
 if __name__ == "__main__":
     main()

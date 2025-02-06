@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Configuration Form -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Bot Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_config') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.timeframe.label(class="form-label") }}
+                        {{ form.timeframe(class="form-control") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.position_size.label(class="form-label") }}
+                        {{ form.position_size(class="form-control") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.leverage.label(class="form-label") }}
+                        {{ form.leverage(class="form-control") }}
+                    </div>
+                    <div class="mb-3 form-check">
+                        {{ form.isolated(class="form-check-input") }}
+                        {{ form.isolated.label(class="form-check-label") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.symbol.label(class="form-label") }}
+                        {{ form.symbol(class="form-control") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.max_positions.label(class="form-label") }}
+                        {{ form.max_positions(class="form-control") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.top_coins_to_scan.label(class="form-label") }}
+                        {{ form.top_coins_to_scan(class="form-control") }}
+                    </div>
+                    {{ form.submit(class="btn btn-primary") }}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monitored Coins -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Monitored Coins</h5>
+            </div>
+            <div class="card-body">
+                {% if monitored_coins %}
+                    {% for coin in monitored_coins %}
+                        <div class="card coin-card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ coin }}</h6>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No coins currently being monitored.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Positions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Active Positions</h5>
+            </div>
+            <div class="card-body">
+                {% if positions %}
+                    {% for position in positions %}
+                        <div class="card coin-card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ position.symbol }}</h6>
+                                <p class="card-text">
+                                    Size: {{ position.contracts }} | 
+                                    Entry: {{ position.entryPrice }} |
+                                    PnL: {{ position.unrealizedPnl }}
+                                </p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No active positions.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
