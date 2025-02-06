@@ -7,18 +7,19 @@ class Config:
     # API Credentials
     API_KEY = os.getenv('BLOFIN_API_KEY')
     API_SECRET = os.getenv('BLOFIN_API_SECRET')
-    
+    API_PASSWORD = os.getenv('BLOFIN_PASSWORD')  # Added password field
+
     # Telegram
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
     TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-    
+
     # Trading Parameters
     TIMEFRAME = os.getenv('TIMEFRAME', '1h')
     POSITION_SIZE = float(os.getenv('POSITION_SIZE', '100'))
     LEVERAGE = int(os.getenv('LEVERAGE', '3'))
     ISOLATED = os.getenv('ISOLATED', 'True').lower() == 'true'
-    SYMBOL = os.getenv('SYMBOL', 'BTC/USDT')
-    
+    SYMBOL = os.getenv('SYMBOL', 'BTC-USDT')  # Updated to Blofin format
+
     # Strategy Parameters
     TP_PERCENTAGE = 0.02  # 2%
     SL_PERCENTAGE = 0.01  # 1%
@@ -28,8 +29,8 @@ class Config:
 
     @classmethod
     def validate(cls):
-        required_fields = ['API_KEY', 'API_SECRET', 'TELEGRAM_TOKEN', 'TELEGRAM_CHAT_ID']
+        required_fields = ['API_KEY', 'API_SECRET', 'API_PASSWORD', 'TELEGRAM_TOKEN', 'TELEGRAM_CHAT_ID']
         missing_fields = [field for field in required_fields if not getattr(cls, field)]
-        
+
         if missing_fields:
             raise ValueError(f"Missing required configuration: {', '.join(missing_fields)}")
