@@ -24,7 +24,9 @@ class CoinScanner:
                 if market['quote'] == 'USDT' and market['active']
             ]
 
+            self.logger.info(f"\n=== Volume Scanning Process ===")
             self.logger.info(f"Found {len(usdt_pairs)} active USDT pairs")
+            self.logger.info(f"Minimum volume requirement: {self.MIN_VOLUME_USDT:,.0f} USDT")
 
             # Fetch 24h volume for each pair with strict validation
             volumes = []
@@ -32,24 +34,33 @@ class CoinScanner:
                 try:
                     ticker = self.exchange.exchange.fetch_ticker(pair)
                     if not ticker or 'quoteVolume' not in ticker:
-                        self.logger.debug(f"Skipping {pair} - No volume data available")
+                        self.logger.debug(f"❌ {pair}: No volume data available")
                         continue
 
                     volume = ticker['quoteVolume']
-                    if not volume or not isinstance(volume, (int, float)) or float(volume) <= 0:
-                        self.logger.debug(f"Skipping {pair} - Invalid volume data")
+                    if volume is None:
+                        self.logger.debug(f"❌ {pair}: Volume is None")
                         continue
 
-                    volume_usdt = float(volume)
+                    try:
+                        volume_usdt = float(volume)
+                    except (ValueError, TypeError):
+                        self.logger.debug(f"❌ {pair}: Invalid volume data type")
+                        continue
+
+                    if volume_usdt <= 0:
+                        self.logger.debug(f"❌ {pair}: Zero or negative volume")
+                        continue
+
                     if volume_usdt < self.MIN_VOLUME_USDT:
-                        self.logger.debug(f"Skipping {pair} - Volume {volume_usdt:.2f} USDT below minimum {self.MIN_VOLUME_USDT:,.0f} USDT")
+                        self.logger.info(f"❌ {pair}: {volume_usdt:,.2f} USDT (Below minimum)")
                         continue
 
                     volumes.append({
                         'symbol': pair,
                         'volume': volume_usdt
                     })
-                    self.logger.debug(f"{pair}: {volume_usdt:,.2f} USDT 24h volume")
+                    self.logger.info(f"✅ {pair}: {volume_usdt:,.2f} USDT")
                 except Exception as e:
                     self.logger.debug(f"Error processing {pair}: {str(e)}")
                     continue
@@ -58,12 +69,11 @@ class CoinScanner:
             volumes.sort(key=lambda x: x['volume'], reverse=True)
             top_pairs = [v['symbol'] for v in volumes[:self.config.TOP_COINS_TO_SCAN]]
 
-            # Log volume information for monitored pairs
-            self.logger.info("\n=== Top Volume Pairs ===")
-            self.logger.info(f"Minimum volume requirement: {self.MIN_VOLUME_USDT:,.0f} USDT")
+            # Log final selection
+            self.logger.info("\n=== Selected Monitoring Pairs ===")
             for v in volumes[:self.config.TOP_COINS_TO_SCAN]:
-                self.logger.info(f"{v['symbol']}: {v['volume']:,.2f} USDT 24h volume")
-            self.logger.info("=====================")
+                self.logger.info(f"🔍 {v['symbol']}: {v['volume']:,.2f} USDT 24h volume")
+            self.logger.info("===============================")
 
             self.monitored_coins = top_pairs
             return top_pairs
