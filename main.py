@@ -44,6 +44,11 @@ def main():
         logger.info(f"Bot started with max positions: {Config.MAX_POSITIONS}")
         notifier.notify("🚀 Trading bot started!")
 
+        # Initial scan to show monitored coins
+        logger.info("\n=== Initial Coin Scan ===")
+        monitored_coins = scanner.get_top_volume_coins()
+        logger.info(f"Initially monitoring {len(monitored_coins)} coins")
+
         while True:
             try:
                 # Get current positions

@@ -12,7 +12,7 @@ class CoinScanner:
         self.strategy = TradingStrategy(config.SMA_PERIOD, config.EMA_PERIOD)
         self.last_scan_time = None
         self.monitored_coins = []
-        self.MIN_VOLUME_USDT = 1000000  # Minimum 1M USDT 24h volume
+        self.MIN_VOLUME_USDT = 500000  # Lowered to 500K USDT for testing
 
     def get_top_volume_coins(self) -> List[str]:
         """Get top volume coins from the exchange with strict volume validation"""
@@ -26,34 +26,49 @@ class CoinScanner:
 
             self.logger.info(f"\n=== Volume Scanning Process ===")
             self.logger.info(f"Found {len(usdt_pairs)} active USDT pairs")
-            self.logger.info(f"Minimum volume requirement: {self.MIN_VOLUME_USDT:,.0f} USDT")
+            self.logger.info(f"Volume threshold: {self.MIN_VOLUME_USDT:,.0f} USDT")
 
             # Fetch 24h volume for each pair with strict validation
             volumes = []
+            pairs_processed = 0
+            pairs_with_volume = 0
+
             for pair in usdt_pairs:
                 try:
+                    pairs_processed += 1
                     ticker = self.exchange.exchange.fetch_ticker(pair)
-                    if not ticker or 'quoteVolume' not in ticker:
-                        self.logger.debug(f"❌ {pair}: No volume data available")
-                        continue
 
-                    volume = ticker['quoteVolume']
+                    # Debug log for ticker data
+                    self.logger.debug(f"Raw ticker data for {pair}: {ticker}")
+
+                    # Try different volume fields that Blofin might use
+                    volume = None
+                    volume_fields = ['quoteVolume', 'baseVolume', 'volume', 'volumeUsd']
+
+                    for field in volume_fields:
+                        if field in ticker and ticker[field] is not None:
+                            volume = ticker[field]
+                            self.logger.debug(f"Found volume in field: {field}")
+                            break
+
                     if volume is None:
-                        self.logger.debug(f"❌ {pair}: Volume is None")
+                        self.logger.info(f"❌ {pair}: No valid volume field found in ticker data")
                         continue
 
                     try:
                         volume_usdt = float(volume)
                     except (ValueError, TypeError):
-                        self.logger.debug(f"❌ {pair}: Invalid volume data type")
+                        self.logger.info(f"❌ {pair}: Invalid volume format")
                         continue
 
                     if volume_usdt <= 0:
-                        self.logger.debug(f"❌ {pair}: Zero or negative volume")
+                        self.logger.info(f"❌ {pair}: Zero or negative volume")
                         continue
 
+                    pairs_with_volume += 1
+
                     if volume_usdt < self.MIN_VOLUME_USDT:
-                        self.logger.info(f"❌ {pair}: {volume_usdt:,.2f} USDT (Below minimum)")
+                        self.logger.info(f"❌ {pair}: {volume_usdt:,.2f} USDT (Below threshold)")
                         continue
 
                     volumes.append({
@@ -61,18 +76,28 @@ class CoinScanner:
                         'volume': volume_usdt
                     })
                     self.logger.info(f"✅ {pair}: {volume_usdt:,.2f} USDT")
+
                 except Exception as e:
-                    self.logger.debug(f"Error processing {pair}: {str(e)}")
+                    self.logger.info(f"❌ Error processing {pair}: {str(e)}")
                     continue
 
             # Sort by volume and get top N pairs
             volumes.sort(key=lambda x: x['volume'], reverse=True)
             top_pairs = [v['symbol'] for v in volumes[:self.config.TOP_COINS_TO_SCAN]]
 
-            # Log final selection
-            self.logger.info("\n=== Selected Monitoring Pairs ===")
-            for v in volumes[:self.config.TOP_COINS_TO_SCAN]:
-                self.logger.info(f"🔍 {v['symbol']}: {v['volume']:,.2f} USDT 24h volume")
+            # Log scanning summary
+            self.logger.info("\n=== Scanning Summary ===")
+            self.logger.info(f"Total pairs processed: {pairs_processed}")
+            self.logger.info(f"Pairs with valid volume: {pairs_with_volume}")
+            self.logger.info(f"Pairs above threshold: {len(volumes)}")
+
+            if volumes:
+                self.logger.info("\n=== Selected Monitoring Pairs ===")
+                for v in volumes[:self.config.TOP_COINS_TO_SCAN]:
+                    self.logger.info(f"🔍 {v['symbol']}: {v['volume']:,.2f} USDT")
+            else:
+                self.logger.info("No pairs met the volume criteria")
+
             self.logger.info("===============================")
 
             self.monitored_coins = top_pairs
