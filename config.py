@@ -7,18 +7,20 @@ class Config:
     # API Credentials
     API_KEY = os.getenv('BLOFIN_API_KEY')
     API_SECRET = os.getenv('BLOFIN_API_SECRET')
-    API_PASSWORD = os.getenv('BLOFIN_PASSWORD')  # Added password field
+    API_PASSWORD = os.getenv('BLOFIN_PASSWORD')
 
     # Telegram
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
     TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
     # Trading Parameters
-    TIMEFRAME = os.getenv('TIMEFRAME', '1h')
+    TIMEFRAME = os.getenv('TIMEFRAME', '5m')  # Changed default to 5m
     POSITION_SIZE = float(os.getenv('POSITION_SIZE', '100'))
     LEVERAGE = int(os.getenv('LEVERAGE', '3'))
     ISOLATED = os.getenv('ISOLATED', 'True').lower() == 'true'
-    SYMBOL = os.getenv('SYMBOL', 'BTC-USDT')  # Updated to Blofin format
+    SYMBOL = os.getenv('SYMBOL', 'BTC-USDT')
+    MAX_POSITIONS = int(os.getenv('MAX_POSITIONS', '3'))  # Maximum number of concurrent positions
+    TOP_COINS_TO_SCAN = int(os.getenv('TOP_COINS_TO_SCAN', '10'))  # Number of top volume coins to scan
 
     # Strategy Parameters
     TP_PERCENTAGE = 0.02  # 2%

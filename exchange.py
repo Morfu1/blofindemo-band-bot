@@ -38,8 +38,7 @@ class BlofingExchange:
                     'slTp': 'market',
                     'slTriggerPx': sl_price,
                     'slOrderPx': sl_price,
-                    'slTriggerPxType': 'last',
-                    'reduceOnly': True
+                    'slTriggerPxType': 'last'
                 })
                 self.logger.info(f"Setting SL price to: {sl_price}")
 
@@ -50,8 +49,7 @@ class BlofingExchange:
                     'tpTp': 'market',
                     'tpTriggerPx': tp_price,
                     'tpOrderPx': tp_price,
-                    'tpTriggerPxType': 'last',
-                    'reduceOnly': True
+                    'tpTriggerPxType': 'last'
                 })
                 self.logger.info(f"Setting TP price to: {tp_price}")
 
@@ -91,10 +89,13 @@ class BlofingExchange:
         except Exception as e:
             raise Exception(f"Setting leverage failed: {str(e)}")
 
-    def get_positions(self, symbol: str) -> List[Dict]:
+    def get_positions(self, symbol: str = None) -> List[Dict]:
         """Get current positions with enhanced error handling"""
         try:
-            positions = self.exchange.fetch_positions([symbol])
+            if symbol:
+                positions = self.exchange.fetch_positions([symbol])
+            else:
+                positions = self.exchange.fetch_positions()
             return [pos for pos in positions if float(pos['contracts']) > 0]
         except Exception as e:
             raise Exception(f"Failed to fetch positions: {str(e)}")
