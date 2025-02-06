@@ -2,11 +2,77 @@
 
 {% block content %}
 <div class="row">
-    <!-- Configuration Form -->
+    <!-- Bot Status and Controls -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="status-indicator me-3">
+                        <span class="badge rounded-pill {% if bot_running %}bg-success{% else %}bg-danger{% endif %}" style="width: 15px; height: 15px; display: inline-block; border-radius: 50%;"></span>
+                        <span class="ms-2">Bot Status: {% if bot_running %}Running{% else %}Stopped{% endif %}</span>
+                    </div>
+                </div>
+                <div class="bot-controls">
+                    <button type="button" 
+                            class="btn btn-success me-2" 
+                            id="startBot" 
+                            {% if bot_running %}disabled{% endif %}>
+                        Start Bot
+                    </button>
+                    <button type="button" 
+                            class="btn btn-danger" 
+                            id="stopBot" 
+                            {% if not bot_running %}disabled{% endif %}>
+                        Stop Bot
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Section -->
     <div class="col-md-6">
+        <!-- Current Configuration Display -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Current Configuration</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <th scope="row">Timeframe:</th>
+                            <td>{{ config.TIMEFRAME }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Position Size:</th>
+                            <td>{{ config.POSITION_SIZE }} USDT</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Leverage:</th>
+                            <td>{{ config.LEVERAGE }}x</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Margin Mode:</th>
+                            <td>{{ "Isolated" if config.ISOLATED else "Cross" }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Max Positions:</th>
+                            <td>{{ config.MAX_POSITIONS }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Top Coins to Scan:</th>
+                            <td>{{ config.TOP_COINS_TO_SCAN }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Configuration Form -->
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Bot Configuration</h5>
+                <h5 class="card-title mb-0">Update Configuration</h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('update_config') }}">
@@ -14,30 +80,32 @@
                     <div class="mb-3">
                         {{ form.timeframe.label(class="form-label") }}
                         {{ form.timeframe(class="form-control") }}
+                        <small class="form-text text-muted">Available timeframes: 1m, 5m, 15m, 30m, 1h, 4h, 1d</small>
                     </div>
                     <div class="mb-3">
                         {{ form.position_size.label(class="form-label") }}
                         {{ form.position_size(class="form-control") }}
+                        <small class="form-text text-muted">Size of each trade in USDT</small>
                     </div>
                     <div class="mb-3">
                         {{ form.leverage.label(class="form-label") }}
                         {{ form.leverage(class="form-control") }}
+                        <small class="form-text text-muted">Trading leverage (1-100)</small>
                     </div>
                     <div class="mb-3 form-check">
                         {{ form.isolated(class="form-check-input") }}
                         {{ form.isolated.label(class="form-check-label") }}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.symbol.label(class="form-label") }}
-                        {{ form.symbol(class="form-control") }}
+                        <small class="form-text text-muted d-block">Use isolated margin mode</small>
                     </div>
                     <div class="mb-3">
                         {{ form.max_positions.label(class="form-label") }}
                         {{ form.max_positions(class="form-control") }}
+                        <small class="form-text text-muted">Maximum number of concurrent positions (1-10)</small>
                     </div>
                     <div class="mb-3">
                         {{ form.top_coins_to_scan.label(class="form-label") }}
                         {{ form.top_coins_to_scan(class="form-control") }}
+                        <small class="form-text text-muted">Number of top volume coins to monitor (1-50)</small>
                     </div>
                     {{ form.submit(class="btn btn-primary") }}
                 </form>
@@ -48,48 +116,118 @@
     <!-- Monitored Coins -->
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Monitored Coins</h5>
+                <span class="badge bg-primary">{{ monitored_coins|length }} coins</span>
             </div>
             <div class="card-body">
                 {% if monitored_coins %}
-                    {% for coin in monitored_coins %}
-                        <div class="card coin-card">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ coin }}</h6>
-                            </div>
-                        </div>
-                    {% endfor %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>24h Volume (USDT)</th>
+                                    <th>Last Signal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for coin in monitored_coins %}
+                                <tr>
+                                    <td>{{ coin.symbol }}</td>
+                                    <td>{{ "{:,.2f}".format(coin.volume) }}</td>
+                                    <td>
+                                        {% if coin.signal %}
+                                            <span class="badge bg-{{ 'success' if coin.signal == 'long' else 'danger' }}">
+                                                {{ coin.signal }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No signal</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 {% else %}
-                    <p>No coins currently being monitored.</p>
+                    <p class="text-muted">No coins currently being monitored.</p>
                 {% endif %}
             </div>
         </div>
 
         <!-- Active Positions -->
         <div class="card mt-4">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Active Positions</h5>
+                <span class="badge bg-primary">{{ positions|length }} / {{ config.MAX_POSITIONS }}</span>
             </div>
             <div class="card-body">
                 {% if positions %}
-                    {% for position in positions %}
-                        <div class="card coin-card">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ position.symbol }}</h6>
-                                <p class="card-text">
-                                    Size: {{ position.contracts }} | 
-                                    Entry: {{ position.entryPrice }} |
-                                    PnL: {{ position.unrealizedPnl }}
-                                </p>
-                            </div>
-                        </div>
-                    {% endfor %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Size</th>
+                                    <th>Entry</th>
+                                    <th>PnL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for position in positions %}
+                                <tr>
+                                    <td>{{ position.symbol }}</td>
+                                    <td>{{ position.contracts }}</td>
+                                    <td>{{ "%.2f"|format(position.entryPrice|float) }}</td>
+                                    <td class="{{ 'text-success' if position.unrealizedPnl|float > 0 else 'text-danger' }}">
+                                        {{ "%.2f"|format(position.unrealizedPnl|float) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 {% else %}
-                    <p>No active positions.</p>
+                    <p class="text-muted">No active positions.</p>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startButton = document.getElementById('startBot');
+    const stopButton = document.getElementById('stopBot');
+
+    startButton.addEventListener('click', async function() {
+        try {
+            const response = await fetch('/start_bot', { method: 'POST' });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to start bot: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error starting bot: ' + error);
+        }
+    });
+
+    stopButton.addEventListener('click', async function() {
+        try {
+            const response = await fetch('/stop_bot', { method: 'POST' });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to stop bot: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error stopping bot: ' + error);
+        }
+    });
+});
+</script>
 {% endblock %}

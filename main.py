@@ -8,7 +8,8 @@ from exchange import BlofingExchange
 from notifications import TelegramNotifier
 from scanner import CoinScanner
 from utils import setup_logging, validate_timeframe
-from server import start_server  # Import the Flask server starter
+from server import start_server
+from bot_control import bot_controller
 
 def is_candle_closed(data):
     """Check if the latest candle is newly closed"""
@@ -44,7 +45,7 @@ def run_trading_bot():
         monitored_coins = scanner.get_top_volume_coins()
         logger.info(f"Initially monitoring {len(monitored_coins)} coins")
 
-        while True:
+        while bot_controller.is_running():  # Check bot_running flag
             try:
                 # Get current positions
                 positions = exchange.get_positions()
@@ -53,13 +54,24 @@ def run_trading_bot():
                 # Wait for next candle close before scanning
                 sleep_time = get_next_candle_time(Config.TIMEFRAME)
                 logger.info(f"Waiting {sleep_time} seconds for next {Config.TIMEFRAME} candle close")
-                time.sleep(sleep_time)
+
+                # Use smaller sleep intervals to check bot_running flag more frequently
+                for _ in range(sleep_time):
+                    if not bot_controller.is_running():
+                        break
+                    time.sleep(1)
+
+                if not bot_controller.is_running():
+                    break
 
                 # Check for new opportunities if we have room for more positions
                 if len(positions) < Config.MAX_POSITIONS:
                     opportunities = scanner.scan_for_opportunities(positions)
 
                     for opportunity in opportunities:
+                        if not bot_controller.is_running():
+                            break
+
                         symbol = opportunity['symbol']
                         signal = opportunity['signal']
 
@@ -106,6 +118,11 @@ def run_trading_bot():
                 if 'notifier' in locals():
                     notifier.notify(f"⚠️ Error: {str(e)}")
                 time.sleep(60)  # Wait a minute before retrying after error
+
+        # Notify that the bot has stopped
+        if 'notifier' in locals():
+            notifier.notify("🛑 Trading bot stopped!")
+        logger.info("Trading bot stopped")
 
     except Exception as e:
         logger.error(f"Fatal error: {str(e)}")
