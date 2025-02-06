@@ -29,33 +29,38 @@ class BlofingExchange:
             if order_type == 'limit' and (price is None or price <= 0):
                 raise ValueError("Valid price required for limit orders")
 
+            # Get current market price for proper SL/TP calculation
+            ticker = self.exchange.fetch_ticker(symbol)
+            current_price = ticker['last']
+
             # Format SL/TP parameters for Blofin API
-            default_params = {'marginMode': 'isolated'} if Config.ISOLATED else {}
+            default_params = {
+                'marginMode': 'isolated' if Config.ISOLATED else 'cross',
+                'tdMode': 'isolated' if Config.ISOLATED else 'cross',
+                'lever': str(Config.LEVERAGE)
+            }
+
             if params and 'stopLoss' in params:
-                sl_price = str(params['stopLoss']['price'])
+                sl_price = params['stopLoss']['price']
                 default_params.update({
-                    'sl': sl_price,
-                    'slTp': 'market',
-                    'slTriggerPx': sl_price,
-                    'slOrderPx': sl_price,
-                    'slTriggerPxType': 'last'
+                    'slTriggerPx': str(sl_price),  # Trigger price
+                    'slOrdPx': str(sl_price),      # Order price
                 })
                 self.logger.info(f"Setting SL price to: {sl_price}")
 
             if params and 'takeProfit' in params:
-                tp_price = str(params['takeProfit']['price'])
+                tp_price = params['takeProfit']['price']
                 default_params.update({
-                    'tp': tp_price,
-                    'tpTp': 'market',
-                    'tpTriggerPx': tp_price,
-                    'tpOrderPx': tp_price,
-                    'tpTriggerPxType': 'last'
+                    'tpTriggerPx': str(tp_price),  # Trigger price
+                    'tpOrdPx': str(tp_price),      # Order price
                 })
                 self.logger.info(f"Setting TP price to: {tp_price}")
 
+            # Log the final parameters
             merged_params = {**default_params, **(params or {})}
             self.logger.info(f"Creating order with params: {merged_params}")
 
+            # Create the order
             order = self.exchange.create_order(
                 symbol=symbol,
                 type=order_type,
@@ -64,11 +69,13 @@ class BlofingExchange:
                 price=price,
                 params=merged_params
             )
+
             self.logger.info(f"Order created successfully: {order}")
             return order
+
         except Exception as e:
-            self.logger.error(f"Order creation failed with params: {merged_params}")
-            raise Exception(f"Order creation failed: {str(e)}")
+            self.logger.error(f"Order creation failed: {str(e)}")
+            raise
 
     def fetch_ohlcv(self, symbol: str, timeframe: str) -> pd.DataFrame:
         """Fetch OHLCV data from exchange"""

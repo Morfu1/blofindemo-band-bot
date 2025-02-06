@@ -35,10 +35,6 @@ def index():
             monitored_coins = []
             top_coins = scanner.get_top_volume_coins()
 
-            # Get current positions for validation
-            positions = exchange.get_positions()
-            active_symbols = [pos['symbol'] for pos in positions]
-
             # Get OHLCV data and signals for each coin
             for symbol in top_coins:
                 try:
@@ -57,8 +53,6 @@ def index():
                     continue
 
             logger.info(f"Successfully processed {len(monitored_coins)} monitored coins")
-
-            # Sort by volume
             monitored_coins.sort(key=lambda x: x['volume'], reverse=True)
 
         except Exception as e:
@@ -75,27 +69,27 @@ def index():
             flash("Error fetching positions. Please check the logs.", "error")
 
         return render_template('dashboard.html', 
-                            form=form,
-                            monitored_coins=monitored_coins,
-                            positions=positions,
-                            config=Config,
-                            bot_running=bot_controller.is_running())
+                          form=form,
+                          monitored_coins=monitored_coins,
+                          positions=positions,
+                          config=Config,
+                          bot_running=bot_controller.is_running())
     except Exception as e:
         logger.error(f"Error in index route: {str(e)}")
         flash(f"An error occurred: {str(e)}", "error")
         return render_template('dashboard.html', 
-                            form=ConfigurationForm(),
-                            monitored_coins=[],
-                            positions=[],
-                            config=Config,
-                            bot_running=bot_controller.is_running())
+                          form=ConfigurationForm(),
+                          monitored_coins=[],
+                          positions=[],
+                          config=Config,
+                          bot_running=bot_controller.is_running())
 
 @app.route('/update_config', methods=['POST'])
 def update_config():
     form = ConfigurationForm()
     if form.validate_on_submit():
         try:
-            Config.TIMEFRAME = str(form.timeframe.data)
+            Config.TIMEFRAME = form.timeframe.data
             Config.POSITION_SIZE = float(form.position_size.data)
             Config.LEVERAGE = int(form.leverage.data)
             Config.ISOLATED = bool(form.isolated.data)
@@ -118,9 +112,11 @@ def update_config():
 @app.route('/start_bot', methods=['POST'])
 def start_bot():
     try:
-        from main import run_trading_bot
+        from trading_bot import run_trading_bot
         if bot_controller.start_bot(run_trading_bot):
+            logger.info("Bot started successfully")
             return jsonify({"success": True})
+        logger.warning("Bot is already running")
         return jsonify({"success": False, "error": "Bot is already running"})
     except Exception as e:
         logger.error(f"Failed to start bot: {str(e)}")
@@ -130,7 +126,9 @@ def start_bot():
 def stop_bot():
     try:
         if bot_controller.stop_bot():
+            logger.info("Bot stopped successfully")
             return jsonify({"success": True})
+        logger.warning("Bot is not running")
         return jsonify({"success": False, "error": "Bot is not running"})
     except Exception as e:
         logger.error(f"Failed to stop bot: {str(e)}")
@@ -140,7 +138,7 @@ def start_server():
     """Start the Flask server"""
     try:
         logger.info("Starting web server on port 5001")
-        app.run(host='0.0.0.0', port=5001, debug=False, use_reloader=False)
+        app.run(host='0.0.0.0', port=5001, debug=False, use_reloader=False, threaded=True)
     except Exception as e:
         logger.error(f"Failed to start web server: {str(e)}")
-        raise  # Re-raise the exception to ensure it's caught by the main process
+        raise
