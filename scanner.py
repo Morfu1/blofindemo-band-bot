@@ -14,6 +14,35 @@ class CoinScanner:
         self.monitored_coins = []
         self.MIN_VOLUME_USDT = 500000  # Lowered to 500K USDT for testing
 
+    def get_monitored_coins(self) -> List[Dict]:
+        """Get currently monitored coins with their signals"""
+        try:
+            top_coins = self.get_top_volume_coins()
+            monitored_coins = []
+
+            for symbol in top_coins:
+                try:
+                    data = self.exchange.fetch_ohlcv(symbol, self.config.TIMEFRAME)
+                    signal = self.strategy.get_signal(data)
+                    volume = data['volume'].iloc[-1] if not data.empty else 0
+
+                    coin_info = {
+                        'symbol': symbol,
+                        'volume': volume,
+                        'signal': signal['action'] if signal['action'] else None
+                    }
+                    monitored_coins.append(coin_info)
+                except Exception as e:
+                    self.logger.error(f"Error processing {symbol}: {str(e)}")
+                    continue
+
+            monitored_coins.sort(key=lambda x: x['volume'], reverse=True)
+            return monitored_coins
+
+        except Exception as e:
+            self.logger.error(f"Error in get_monitored_coins: {str(e)}")
+            return []
+
     def get_top_volume_coins(self) -> List[str]:
         """Get top volume coins from the exchange with strict volume validation"""
         try:

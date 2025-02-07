@@ -843,6 +843,7 @@ dependencies = [
     { name = "pandas" },
     { name = "python-dotenv" },
     { name = "python-telegram-bot" },
+    { name = "requests" },
     { name = "telegram" },
     { name = "wtforms" },
 ]
@@ -858,6 +859,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "python-telegram-bot", specifier = ">=21.10" },
+    { name = "requests", specifier = ">=2.32.3" },
     { name = "telegram", specifier = ">=0.0.1" },
     { name = "wtforms", specifier = ">=3.2.1" },
 ]

@@ -18,7 +18,7 @@ def get_next_candle_time(timeframe='5m'):
     return remaining_seconds + 2  # Add 2 seconds buffer
 
 def run_trading_bot():
-    """Run the trading bot"""
+    """Run the trading bot with improved resilience for long-running sessions"""
     try:
         # Initialize components
         exchange = BlofingExchange()
@@ -36,11 +36,46 @@ def run_trading_bot():
         monitored_coins = scanner.get_top_volume_coins()
         logger.info(f"Initially monitoring {len(monitored_coins)} coins")
 
+        last_status_update = datetime.now()
+        reconnection_attempts = 0
+        max_reconnection_attempts = 5
+
         while bot_controller.is_running():
             try:
-                # Get current positions
-                positions = exchange.get_positions()
-                logger.info(f"Current active positions: {len(positions)}")
+                current_time = datetime.now()
+
+                # Send status update every 6 hours
+                if (current_time - last_status_update).total_seconds() > 21600:  # 6 hours
+                    try:
+                        positions = exchange.get_positions()
+                        status_message = "📊 Bot Status Update:\n"
+                        status_message += f"Active Positions: {len(positions)}/{Config.MAX_POSITIONS}\n"
+                        status_message += f"Uptime: {(current_time - last_status_update).total_seconds() / 3600:.1f}h"
+                        notifier.notify(status_message)
+                        last_status_update = current_time
+                        reconnection_attempts = 0  # Reset counter after successful operation
+                    except Exception as e:
+                        logger.error(f"Status update failed: {str(e)}")
+                        if reconnection_attempts < max_reconnection_attempts:
+                            reconnection_attempts += 1
+                            time.sleep(60)  # Wait before retry
+                            continue
+                        else:
+                            raise Exception("Max reconnection attempts reached")
+
+                # Get current positions with retry logic
+                try:
+                    positions = exchange.get_positions()
+                    logger.info(f"Current active positions: {len(positions)}")
+                    reconnection_attempts = 0  # Reset counter after successful operation
+                except Exception as e:
+                    logger.error(f"Failed to fetch positions: {str(e)}")
+                    if reconnection_attempts < max_reconnection_attempts:
+                        reconnection_attempts += 1
+                        time.sleep(60)
+                        continue
+                    else:
+                        raise Exception("Max reconnection attempts reached")
 
                 # Check for space for new positions
                 if len(positions) < Config.MAX_POSITIONS:
@@ -55,7 +90,7 @@ def run_trading_bot():
 
                         # Calculate base position size (without leverage)
                         base_position_size = Config.POSITION_SIZE
-                        
+
                         # Set leverage for the symbol
                         try:
                             exchange.set_leverage(Config.LEVERAGE, symbol)
@@ -103,7 +138,7 @@ def run_trading_bot():
                 # Wait for next candle
                 sleep_time = get_next_candle_time(Config.TIMEFRAME)
                 logger.info(f"Waiting {sleep_time} seconds for next {Config.TIMEFRAME} candle")
-                
+
                 # Check bot status more frequently
                 for _ in range(sleep_time):
                     if not bot_controller.is_running():

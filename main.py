@@ -17,14 +17,30 @@ def main():
         if not validate_timeframe(Config.TIMEFRAME):
             raise ValueError(f"Invalid timeframe: {Config.TIMEFRAME}")
 
-        # Start web server in a separate thread
+        # Start web server in a separate thread with proper error handling
         web_thread = threading.Thread(target=start_server)
         web_thread.daemon = True
         web_thread.start()
-        logger.info("Web interface started")
+        logger.info("Web server thread started")
 
         # Wait for web server to be ready
-        time.sleep(5)  # Give the web server time to start
+        server_wait_time = 0
+        max_wait_time = 30  # Maximum time to wait for server (seconds)
+        while server_wait_time < max_wait_time:
+            try:
+                import requests
+                response = requests.get('http://0.0.0.0:8080/')
+                if response.status_code == 200:
+                    logger.info("Web server is up and running")
+                    break
+            except:
+                server_wait_time += 1
+                time.sleep(1)
+                continue
+
+        if server_wait_time >= max_wait_time:
+            logger.error("Web server failed to start within the timeout period")
+            raise Exception("Web server startup timeout")
 
         # Keep the main thread running
         while True:
