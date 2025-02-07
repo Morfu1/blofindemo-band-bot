@@ -16,4 +16,5 @@ dependencies = [
     "wtforms>=3.2.1",
     "oauthlib>=3.2.2",
     "requests>=2.32.3",
+    "twilio>=9.4.4",
 ]

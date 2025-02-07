@@ -88,6 +88,18 @@ wheels = [
 ]
 
 [[package]]
+name = "aiohttp-retry"
+version = "2.9.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9d/61/ebda4d8e3d8cfa1fd3db0fb428db2dd7461d5742cea35178277ad180b033/aiohttp_retry-2.9.1.tar.gz", hash = "sha256:8eb75e904ed4ee5c2ec242fefe85bf04240f685391c4879d8f541d6028ff01f1", size = 13608 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1a/99/84ba7273339d0f3dfa57901b846489d2e5c2cd731470167757f1935fffbd/aiohttp_retry-2.9.1-py3-none-any.whl", hash = "sha256:66d2759d1921838256a05a3f80ad7e724936f083e35be5abb5e16eed6be6dc54", size = 9981 },
+]
+
+[[package]]
 name = "aiosignal"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -788,6 +800,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyjwt"
+version = "2.10.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/46/bd74733ff231675599650d3e47f361794b22ef3e3770998dda30d3b63726/pyjwt-2.10.1.tar.gz", hash = "sha256:3cc5772eb20009233caf06e9d8a0577824723b44e6648ee0a2aedb6cf9381953", size = 87785 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/61/ad/689f02752eeec26aed679477e80e632ef1b682313be70793d798c1d5fc8f/PyJWT-2.10.1-py3-none-any.whl", hash = "sha256:dcdd193e30abefd5debf142f9adfcdd2b58004e644f25406ffaebd50bd98dacb", size = 22997 },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -845,6 +866,7 @@ dependencies = [
     { name = "python-telegram-bot" },
     { name = "requests" },
     { name = "telegram" },
+    { name = "twilio" },
     { name = "wtforms" },
 ]
 
@@ -861,6 +883,7 @@ requires-dist = [
     { name = "python-telegram-bot", specifier = ">=21.10" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "telegram", specifier = ">=0.0.1" },
+    { name = "twilio", specifier = ">=9.4.4" },
     { name = "wtforms", specifier = ">=3.2.1" },
 ]
 
@@ -911,6 +934,21 @@ name = "telegram"
 version = "0.0.1"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/9d/ca/8bdf2deb93b9f6971dabf2ddc827c2a98ce23e13582a15b37e9bc169f226/telegram-0.0.1.tar.gz", hash = "sha256:d405a0af4c868a8dbeae6d03e297e21c7ee6269e11e2ed3810e15544aba02591", size = 879 }
+
+[[package]]
+name = "twilio"
+version = "9.4.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "aiohttp-retry" },
+    { name = "pyjwt" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6d/0f/1ea92192bd16001dde01074b656002b755fde466de57acbc5176e109c12a/twilio-9.4.4.tar.gz", hash = "sha256:60dc5fbae13df9aa83b16025c6f953831c50fd2cb65d53d940bc2289f65211a2", size = 988134 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/f6/2e77510ae3b713f3dc463eaf9fc311b7e6f788b036389dd254f13c68389f/twilio-9.4.4-py2.py3-none-any.whl", hash = "sha256:eea20c4d58ca7dd32d9763dbf4de19acba2eb8b543a761ea79efd455c94cfadf", size = 1875738 },
+]
 
 [[package]]
 name = "typing-extensions"
