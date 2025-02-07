@@ -872,19 +872,19 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ccxt", specifier = ">=4.4.57" },
-    { name = "flask", specifier = ">=3.1.0" },
-    { name = "flask-login", specifier = ">=0.6.3" },
-    { name = "flask-wtf", specifier = ">=1.2.2" },
-    { name = "numpy", specifier = ">=2.2.2" },
-    { name = "oauthlib", specifier = ">=3.2.2" },
-    { name = "pandas", specifier = ">=2.2.3" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "python-telegram-bot", specifier = ">=21.10" },
-    { name = "requests", specifier = ">=2.32.3" },
-    { name = "telegram", specifier = ">=0.0.1" },
+    { name = "ccxt", specifier = "==4.4.57" },
+    { name = "flask", specifier = "==3.1.0" },
+    { name = "flask-login", specifier = "==0.6.3" },
+    { name = "flask-wtf", specifier = "==1.2.2" },
+    { name = "numpy", specifier = "==2.2.2" },
+    { name = "oauthlib", specifier = "==3.2.2" },
+    { name = "pandas", specifier = "==2.2.3" },
+    { name = "python-dotenv", specifier = "==1.0.1" },
+    { name = "python-telegram-bot", specifier = "==21.10" },
+    { name = "requests", specifier = "==2.32.3" },
+    { name = "telegram", specifier = "==0.0.1" },
     { name = "twilio", specifier = ">=9.4.4" },
-    { name = "wtforms", specifier = ">=3.2.1" },
+    { name = "wtforms", specifier = "==3.2.1" },
 ]
 
 [[package]]
